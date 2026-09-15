@@ -7,6 +7,11 @@ const port = 3000
 app.use(express.json())
 app.use(routes)
 
+app.use((erro, req, res, next) => {
+    console.error(erro)
+    res.status(500).json({ erro: 'Erro interno do servidor' })
+})
+
 // Iniciar servidor
 app.listen(port, () => {
     console.log(`API rodando em: http://localhost:${port}`)

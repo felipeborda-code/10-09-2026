@@ -4,6 +4,15 @@ import { EquipamentoService } from '../services/services.js'
 const router = Router()
 const equipamentoService = new EquipamentoService()
 
+const camposObrigatorios = [
+	'nome',
+	'categoria',
+	'condicao_de_uso',
+	'disponibilidade'
+]
+
+const campoAusente = (valor) => valor === undefined || valor === null || valor === ''
+
 router.get('/', (req, res) => {
 	res.json({
 		mensagem: 'API de equipamentos funcionando',
@@ -11,57 +20,54 @@ router.get('/', (req, res) => {
 	})
 })
 
+router.get('/health', (req, res) => {
+	res.json({ status: 'ok' })
+})
+
 router.get('/equipamentos', async (req, res) => {
-	try {
-		const equipamentos = await equipamentoService.listarTodos()
-		res.json(equipamentos)
-	} catch (erro) {
-		console.error('Erro ao listar equipamentos:', erro)
-		res.status(500).json({ erro: 'Erro ao buscar equipamentos' })
-	}
+	const equipamentos = await equipamentoService.listarTodos()
+	res.json(equipamentos)
 })
 
 router.get('/equipamentos/:id', async (req, res) => {
-	try {
-		const equipamento = await equipamentoService.buscarPorId(req.params.id)
+	const equipamento = await equipamentoService.buscarPorId(req.params.id)
 
-		if (!equipamento) {
-			return res.status(404).json({ erro: 'Equipamento não encontrado' })
-		}
-
-		res.json(equipamento)
-	} catch (erro) {
-		console.error('Erro ao buscar equipamento:', erro)
-		res.status(500).json({ erro: 'Erro ao buscar equipamento' })
+	if (!equipamento) {
+		return res.status(404).json({ erro: 'Equipamento não encontrado' })
 	}
+
+	res.json(equipamento)
 })
 
 router.post('/equipamentos', async (req, res) => {
-	try {
-		const equipamento = await equipamentoService.cadastrar(req.body)
-		res.status(201).json(equipamento)
-	} catch (erro) {
-		console.error('Erro ao cadastrar equipamento:', erro)
-		res.status(500).json({ erro: 'Erro ao cadastrar equipamento' })
+	const camposFaltantes = camposObrigatorios.filter((campo) => campoAusente(req.body?.[campo]))
+
+	if (camposFaltantes.length > 0) {
+		return res.status(400).json({
+			erro: 'Dados obrigatórios ausentes',
+			campos: camposFaltantes
+		})
 	}
+
+	const equipamento = await equipamentoService.cadastrar(req.body)
+	res.status(201).json(equipamento)
 })
 
 router.patch('/equipamentos/:id/disponibilidade', async (req, res) => {
-	try {
-		const equipamento = await equipamentoService.alterarDisponibilidade(
-			req.params.id,
-			req.body.disponibilidade
-		)
-
-		if (!equipamento) {
-			return res.status(404).json({ erro: 'Equipamento não encontrado' })
-		}
-
-		res.json(equipamento)
-	} catch (erro) {
-		console.error('Erro ao alterar disponibilidade:', erro)
-		res.status(500).json({ erro: 'Erro ao alterar disponibilidade' })
+	if (campoAusente(req.body?.disponibilidade)) {
+		return res.status(400).json({ erro: 'O campo disponibilidade é obrigatório' })
 	}
+
+	const equipamento = await equipamentoService.alterarDisponibilidade(
+		req.params.id,
+		req.body.disponibilidade
+	)
+
+	if (!equipamento) {
+		return res.status(404).json({ erro: 'Equipamento não encontrado' })
+	}
+
+	res.json(equipamento)
 })
 
 export default router
