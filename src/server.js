@@ -7,6 +7,7 @@ const port = 3000
 app.use(express.json())
 app.use(routes)
 
+// Trata erros que não foram previstos.
 app.use((erro, req, res, next) => {
     console.error(erro)
     res.status(500).json({ erro: 'Erro interno do servidor' })
